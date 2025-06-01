@@ -260,6 +260,26 @@ int main(int argc, char** argv) {
         viewer->addPointCloud<pcl::PointXYZ>(cloud, "cloud");
         viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "cloud");
 
+        if (1)
+        {
+            // 计算凹包(2d)
+            pcl::ConcaveHull<pcl::PointXYZ> surface_3d;						// 2d凹包
+            surface_3d.setInputCloud(cloud);
+            surface_3d.setDimension(3);										// 凹包设置凹包是2d的还是3d的
+            surface_3d.setAlpha(30);										// 值越小，生成的凹包越细分
+            std::vector<pcl::Vertices> polygons_3d;							// 保存凹包顶点
+            surface_3d.reconstruct(*cloud, polygons_3d);				    // 计算凹包
+            pcl::Vertices vertices = polygons_3d[0];
+            std::cout << "凹包围顶点数量: " << vertices.vertices.size() << std::endl;
+
+            // 凹包可视化
+            viewer->addPolygonMesh<pcl::PointXYZ>(cloud, polygons_3d, "polygons_3d_");
+            viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, "polygons_3d_");
+            viewer->setRepresentationToWireframeForAllActors();
+        }
+        
+
+
     /*
     {   // 计算凹包(3d)
         pcl::ConcaveHull<pcl::PointXYZ> cloud_3d;						// 3d凹包
@@ -284,60 +304,65 @@ int main(int argc, char** argv) {
     }
     */
 
-    float gap = 100;
-    float longth = aabb.max_x - aabb.min_x;
-    for (float i = 0;gap * i < longth; i++)
-    {
-        
-        // 切分点云
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cropppedPointCloud(new pcl::PointCloud<pcl::PointXYZ>);
-        cropPointCloud(pcl::PointXYZ(aabb.min_x + i * gap, aabb.min_y, aabb.min_z), pcl::PointXYZ(aabb.min_x + (i + 1) * gap, aabb.max_y, aabb.max_z), cloud, cropppedPointCloud);
-        
-        // 切片轮廓
-        pcl::PointCloud<pcl::PointXYZ>::Ptr contour(new pcl::PointCloud<pcl::PointXYZ>);
-        //平面参数
-        float x_plane = aabb.min_x + i * gap + 0.5 * gap;
-        std::vector<float> planeModel = { 1, 0, 0, -x_plane };
-        slicePointCloud(cropppedPointCloud, planeModel, 1, contour);
-        
 
-
-        // 计算凹包(2d)
-        pcl::ConcaveHull<pcl::PointXYZ> surface_2d;						// 2d凹包
-        surface_2d.setInputCloud(contour);
-        surface_2d.setDimension(2);										// 凹包设置凹包是2d的还是3d的
-        surface_2d.setAlpha(200);										// 值越小，生成的凹包越细分
-        std::vector<pcl::Vertices> polygons_2d;							// 保存凹包顶点
-        surface_2d.reconstruct(*contour, polygons_2d);				    // 计算凹包
-        pcl::Vertices vertices = polygons_2d[0];
-        std::cout << "凹包围顶点数量: " << vertices.vertices.size() << std::endl;
-
-        // 凹包可视化
-        viewer->addPolygonMesh<pcl::PointXYZ>(contour, polygons_2d, "polygons_2d_"+std::to_string(i));
-        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, "polygons_2d_" + std::to_string(i));
-        viewer->setRepresentationToWireframeForAllActors();
-
-
-        /*
-        //计算凹包围顶点索引
-        std::vector<int> indices;
-        for (size_t i = 0; i < vertices.vertices.size(); i++)
+#if 0
+        float gap = 100;
+        float longth = aabb.max_x - aabb.min_x;
+        for (float i = 0;gap * i < longth; i++)
         {
-            int index = searchNearestPoint(cloud, contour->points[vertices.vertices[i]]);
-            if (index)
+
+            // 切分点云
+            pcl::PointCloud<pcl::PointXYZ>::Ptr cropppedPointCloud(new pcl::PointCloud<pcl::PointXYZ>);
+            cropPointCloud(pcl::PointXYZ(aabb.min_x + i * gap, aabb.min_y, aabb.min_z), pcl::PointXYZ(aabb.min_x + (i + 1) * gap, aabb.max_y, aabb.max_z), cloud, cropppedPointCloud);
+
+            // 切片轮廓
+            pcl::PointCloud<pcl::PointXYZ>::Ptr contour(new pcl::PointCloud<pcl::PointXYZ>);
+            //平面参数
+            float x_plane = aabb.min_x + i * gap + 0.5 * gap;
+            std::vector<float> planeModel = { 1, 0, 0, -x_plane };
+            slicePointCloud(cropppedPointCloud, planeModel, 1, contour);
+
+
+
+            // 计算凹包(2d)
+            pcl::ConcaveHull<pcl::PointXYZ> surface_2d;						// 2d凹包
+            surface_2d.setInputCloud(contour);
+            surface_2d.setDimension(2);										// 凹包设置凹包是2d的还是3d的
+            surface_2d.setAlpha(200);										// 值越小，生成的凹包越细分
+            std::vector<pcl::Vertices> polygons_2d;							// 保存凹包顶点
+            surface_2d.reconstruct(*contour, polygons_2d);				    // 计算凹包
+            pcl::Vertices vertices = polygons_2d[0];
+            std::cout << "凹包围顶点数量: " << vertices.vertices.size() << std::endl;
+
+            // 凹包可视化
+            viewer->addPolygonMesh<pcl::PointXYZ>(contour, polygons_2d, "polygons_2d_" + std::to_string(i));
+            viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, "polygons_2d_" + std::to_string(i));
+            viewer->setRepresentationToWireframeForAllActors();
+
+
+            /*
+            //计算凹包围顶点索引
+            std::vector<int> indices;
+            for (size_t i = 0; i < vertices.vertices.size(); i++)
             {
-				indices.push_back(index);
+                int index = searchNearestPoint(cloud, contour->points[vertices.vertices[i]]);
+                if (index)
+                {
+                    indices.push_back(index);
+                }
             }
+
+            // 扩展点云
+            pcl::PointCloud<pcl::PointXYZ>::Ptr expanded_cloud = expandCurveAlongNormals(cloud, indices, 10, 20);
+            viewer->addPointCloud<pcl::PointXYZ>(expanded_cloud, "expanded_cloud_" + std::to_string(i));
+            viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "expanded_cloud_" + std::to_string(i));
+            */
+
+
         }
 
-		// 扩展点云
-		pcl::PointCloud<pcl::PointXYZ>::Ptr expanded_cloud = expandCurveAlongNormals(cloud, indices, 10, 20);
-		viewer->addPointCloud<pcl::PointXYZ>(expanded_cloud, "expanded_cloud_" + std::to_string(i));
-        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "expanded_cloud_" + std::to_string(i));
-        */
+#endif // 0
 
-
-    }
 
 
     while (!viewer->wasStopped())
